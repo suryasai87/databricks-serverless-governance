@@ -165,16 +165,6 @@ cost_rules:
 | `system.compute.warehouse_events` | `warehouse_id`, `event_type`, `cluster_count`, `event_time` | ~5 min |
 | `system.compute.warehouses` | Full warehouse config history | ~5 min |
 
-## Gap Analysis: What Databricks Doesn't Have (Yet)
-
-| Gap | Workaround in This Project |
-|-----|---------------------------|
-| No Query Watchdog for Serverless | Notebook 01 (custom watchdog) |
-| No conditional query killing rules | YAML-based rules engine with exclusions |
-| No real-time query event triggers | Scheduled polling every 5 min |
-| No budget-based auto-stop | Notebook 03 (cost monitor with stop action) |
-| No query complexity pre-flight | Tag-based rules (low-priority = shorter timeout) |
-| Budget Policies don't enforce | Active enforcement via API calls |
 
 ## Pro Tips
 
