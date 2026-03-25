@@ -1,0 +1,113 @@
+# ============================================================================
+# Databricks Serverless SQL Governance - Configuration
+# ============================================================================
+# Edit this file to customize governance rules for your workspace.
+# Deploy changes by re-running the setup notebook or updating the Databricks Job.
+# ============================================================================
+
+# -- General Settings --
+general:
+  catalog: "hls_amer_catalog"
+  schema: "serverless_governance"
+  audit_table: "governance_audit_log"
+  notification_enabled: true
+  dry_run: false  # Set to true to log actions without executing them
+
+# -- Query Killer Rules --
+# Each rule defines conditions under which running queries will be cancelled.
+# Rules are evaluated in order; first match wins.
+query_rules:
+  - name: "Kill queries running > 30 minutes"
+    enabled: true
+    condition:
+      max_duration_minutes: 30
+    exclude:
+      users:
+        - "system@databricks.com"
+      statement_types:
+        - "REFRESH"  # Don't kill materialized view refreshes by default
+    severity: "warning"
+
+  - name: "Kill queries running > 60 minutes (all types)"
+    enabled: true
+    condition:
+      max_duration_minutes: 60
+    exclude:
+      users: []
+      statement_types: []
+    severity: "critical"
+
+  - name: "Kill queries reading > 10 GB"
+    enabled: true
+    condition:
+      max_read_bytes_gb: 10
+    exclude:
+      users: []
+      statement_types:
+        - "REFRESH"
+    severity: "warning"
+
+  - name: "Kill queries scanning > 1 billion rows"
+    enabled: true
+    condition:
+      max_read_rows: 1000000000
+    exclude:
+      users: []
+      statement_types: []
+    severity: "critical"
+
+  - name: "Kill low-priority queries after 15 minutes"
+    enabled: true
+    condition:
+      max_duration_minutes: 15
+      query_tag_filter:
+        key: "priority"
+        value: "low"
+    exclude:
+      users: []
+      statement_types: []
+    severity: "info"
+
+# -- Warehouse Idle Shutdown Rules --
+warehouse_rules:
+  - name: "Stop warehouses idle > 10 minutes"
+    enabled: true
+    idle_threshold_minutes: 10
+    exempt_warehouses:
+      - "production-wh"
+      - "shared-analytics-wh"
+    exempt_warehouse_ids: []
+
+  - name: "Stop non-serverless warehouses idle > 30 minutes"
+    enabled: true
+    idle_threshold_minutes: 30
+    warehouse_type_filter: "PRO"
+    exempt_warehouses: []
+    exempt_warehouse_ids: []
+
+# -- Cost-Based Rules --
+cost_rules:
+  - name: "Stop warehouse exceeding daily DBU budget"
+    enabled: true
+    max_daily_dbu: 500
+    action: "stop"
+    exempt_warehouses:
+      - "production-wh"
+
+  - name: "Alert on warehouse exceeding hourly DBU threshold"
+    enabled: true
+    max_hourly_dbu: 50
+    action: "alert_only"
+    exempt_warehouses: []
+
+# -- Schedule Settings --
+schedule:
+  query_watchdog_interval_minutes: 5
+  warehouse_auditor_interval_minutes: 15
+  cost_monitor_interval_minutes: 60
+
+# -- Notification Settings --
+notifications:
+  slack_webhook_url: ""  # Optional: Slack incoming webhook URL
+  email_recipients: []   # Optional: list of email addresses
+  log_to_delta: true     # Always log to audit Delta table
